@@ -14,6 +14,7 @@ import {
   ExplorerLink,
 } from '../cluster/cluster-ui';
 import toast, { Toaster } from 'react-hot-toast';
+import Image from 'next/image';
 
 const pages: { label: string; path: string }[] = [
   { label: 'Account', path: '/account' },
@@ -28,10 +29,13 @@ export function UiLayout({ children }: { children: ReactNode }) {
       <div className="navbar bg-base-300 text-neutral-content flex-col md:flex-row space-y-2 md:space-y-0">
         <div className="flex-1">
           <Link className="btn btn-ghost normal-case text-xl" href="/">
-            <img
-              className="h-4 md:h-6"
+            <Image
+              className="w-auto"
               alt="Solana Logo"
               src="/solana-logo.png"
+              width={196}
+              height={28}
+              priority
             />
           </Link>
           <ul className="menu menu-horizontal px-1 space-x-2">
