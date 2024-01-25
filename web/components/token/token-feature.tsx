@@ -21,7 +21,7 @@ export default function TokenAccounts() {
 
   return (
     <>
-      <ModalTokenCreate
+      <ModalTokenMint
         address={publicKey}
         show={showSendModal}
         hide={() => setShowSendModal(false)}
@@ -33,20 +33,28 @@ export default function TokenAccounts() {
             <div className="space-x-2">
               <button
                 className="btn btn-xs lg:btn-md btn-outline"
-                onClick={() => setShowSendModal(true)}
+                onClick={() => console.log('Create New Token Mint')}
               >
                 Create New Token
               </button>
             </div>
           </div>
         </div>
-        <div>No Tokens Created Yet</div>
+        <div>
+          No Tokens Created Yet
+          <button
+            className="btn btn-xs lg:btn-md btn-outline"
+            onClick={() => setShowSendModal(true)}
+          >
+            Mint Tokens
+          </button>
+        </div>
       </div>
     </>
   );
 }
 
-function ModalTokenCreate({
+function ModalTokenMint({
   hide,
   show,
   address,
@@ -56,7 +64,7 @@ function ModalTokenCreate({
   address: PublicKey;
 }) {
   const wallet = useWallet();
-  const [mintAuthority, setmintAuthority] = useState('');
+  const [amount, setAmount] = useState('1');
 
   if (!address || !wallet.sendTransaction) {
     return <div>Wallet not connected</div>;
@@ -75,11 +83,13 @@ function ModalTokenCreate({
     >
       <input
         disabled={false}
-        type="text"
-        placeholder="mintAuthority public address"
+        type="number"
+        step="any"
+        min="1"
+        placeholder="Amount"
         className="input input-bordered w-full"
-        value={mintAuthority}
-        onChange={(e) => setmintAuthority(e.target.value)}
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
       />
     </AppModal>
   );
