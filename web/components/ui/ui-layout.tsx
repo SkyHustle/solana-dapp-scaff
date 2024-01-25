@@ -19,6 +19,7 @@ import Image from 'next/image';
 const pages: { label: string; path: string }[] = [
   { label: 'Account', path: '/account' },
   { label: 'Clusters', path: '/clusters' },
+  { label: 'Tokens', path: '/tokens' },
 ];
 
 export function UiLayout({ children }: { children: ReactNode }) {
