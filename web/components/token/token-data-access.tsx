@@ -11,9 +11,12 @@ import { useTransactionToast } from '../ui/ui-layout';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   MINT_SIZE,
   getMinimumBalanceForRentExemptMint,
   createInitializeMintInstruction,
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
 } from '@solana/spl-token';
 import toast from 'react-hot-toast';
 
@@ -55,12 +58,31 @@ export function useCreateMint({ address }: { address: PublicKey | null }) {
           )
         );
 
+        const associatedToken = await getAssociatedTokenAddress(
+          tokenMint.publicKey,
+          publicKey!,
+          false,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey!,
+            associatedToken,
+            publicKey!,
+            tokenMint.publicKey,
+            TOKEN_PROGRAM_ID,
+            ASSOCIATED_TOKEN_PROGRAM_ID
+          )
+        );
+
         // prompts the user to sign the transaction and submit it to the network
         signature = await sendTransaction(transaction, connection, {
           signers: [tokenMint],
         });
+        console.log('Token Mint Tx Sig ', signature);
 
-        console.log(signature);
         return signature;
       } catch (err) {
         toast.error('Error creating Token Mint');
