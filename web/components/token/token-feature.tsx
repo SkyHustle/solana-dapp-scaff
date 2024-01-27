@@ -2,7 +2,7 @@
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletButton } from '../solana/solana-provider';
 import { useCreateMint } from './token-data-access';
-import { AccountTokens } from '../account/account-ui';
+import { MintAuthorityTokens } from './token-ui';
 
 export default function TokenAccounts() {
   const { publicKey } = useWallet();
@@ -27,20 +27,18 @@ export default function TokenAccounts() {
     <>
       <div className="space-y-2 pt-10">
         <div className="justify-between">
-          <div className="flex justify-between">
-            <h2 className="text-2xl font-bold">
-              <button
-                className="btn btn-xs lg:btn-md btn-outline"
-                onClick={() => createMint()}
-              >
-                Create New Token
-              </button>
-            </h2>
+          <div className="space-x-2">
+            <button
+              className="btn btn-xs lg:btn-md btn-outline"
+              onClick={() => createMint()}
+            >
+              Create New Token
+            </button>
           </div>
         </div>
         <div></div>
       </div>
-      <AccountTokens address={publicKey} />
+      <MintAuthorityTokens address={publicKey} />
     </>
   );
 }
