@@ -23,7 +23,7 @@ import toast from 'react-hot-toast';
 export default function TokenAccounts() {
   const { publicKey } = useWallet();
   const [showSendModal, setShowSendModal] = useState(false);
-  const mutation = useCreateMint({ address: publicKey });
+  const mutation = useCreateMint();
 
   if (!publicKey) {
     return (
@@ -74,7 +74,7 @@ export default function TokenAccounts() {
   );
 }
 
-function useCreateMint({ address }: { address: PublicKey }) {
+function useCreateMint() {
   const { connection } = useConnection();
   const transactionToast = useTransactionToast();
   const { publicKey, sendTransaction } = useWallet();
@@ -83,7 +83,7 @@ function useCreateMint({ address }: { address: PublicKey }) {
   return useMutation({
     mutationKey: [
       'create-token-mint',
-      { endpoint: connection.rpcEndpoint, address },
+      { endpoint: connection.rpcEndpoint, publicKey },
     ],
     mutationFn: async () => {
       let signature: TransactionSignature = '';
