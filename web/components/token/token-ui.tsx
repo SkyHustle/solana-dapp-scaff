@@ -16,27 +16,39 @@ import toast from 'react-hot-toast';
 export function MintAuthorityTokens({ address }: { address: PublicKey }) {
   const [showAll, setShowAll] = useState(false);
   const [showTokenMintModal, setShowTokenMintModal] = useState(false);
+  const [selectedTokenDetails, setSelectedTokenDetails] = useState<
+    | {
+        mintPublicKey: PublicKey;
+        tokenAccountPublicKey: PublicKey;
+      }
+    | undefined
+  >(undefined);
+
   const query = useGetTokenAccounts({ address });
   const client = useQueryClient();
 
   const items = useMemo(() => {
-    if (showAll) return query.data;
-    return query.data?.slice(0, 5);
+    const validItems =
+      query.data?.map((item) => ({
+        ...item,
+        mintPublicKey: new PublicKey(item.account.data.parsed.info.mint),
+        tokenAccountPublicKey: item.pubkey,
+      })) ?? [];
+
+    return showAll ? validItems : validItems.slice(0, 5);
   }, [query.data, showAll]);
 
   return (
     <>
-      <ModalTokenMint
-        hide={() => setShowTokenMintModal(false)}
-        show={showTokenMintModal}
-        address={address}
-        mintPublicKey={
-          new PublicKey('Hi3hMa6hpZ1bxX69ubDVYYQvNPnRh2ek5F6cW3a7PhE4')
-        }
-        tokenAccountPublicKey={
-          new PublicKey('8vJv26uFB6GCXF7NnttWmtFTCwLT1B6HMdo3mGdJMhaY')
-        }
-      />
+      {selectedTokenDetails && (
+        <ModalTokenMint
+          hide={() => setShowTokenMintModal(false)}
+          show={showTokenMintModal}
+          address={address}
+          mintPublicKey={selectedTokenDetails.mintPublicKey}
+          tokenAccountPublicKey={selectedTokenDetails.tokenAccountPublicKey}
+        />
+      )}
 
       <div className="space-y-2">
         <div className="justify-between">
@@ -83,45 +95,58 @@ export function MintAuthorityTokens({ address }: { address: PublicKey }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {items?.map(({ account, pubkey }) => (
-                    <tr key={pubkey.toString()}>
-                      <td>
-                        <div className="flex space-x-2">
+                  {items?.map(
+                    ({
+                      account,
+                      pubkey,
+                      mintPublicKey,
+                      tokenAccountPublicKey,
+                    }) => (
+                      <tr key={pubkey.toString()}>
+                        <td>
+                          <div className="flex space-x-2">
+                            <span className="font-mono">
+                              <ExplorerLink
+                                label={ellipsify(pubkey.toString())}
+                                path={`account/${pubkey.toString()}`}
+                              />
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="flex space-x-2">
+                            <span className="font-mono">
+                              <ExplorerLink
+                                label={ellipsify(account.data.parsed.info.mint)}
+                                path={`account/${account.data.parsed.info.mint.toString()}`}
+                              />
+                            </span>
+                          </div>
+                        </td>
+                        <td>
                           <span className="font-mono">
-                            <ExplorerLink
-                              label={ellipsify(pubkey.toString())}
-                              path={`account/${pubkey.toString()}`}
-                            />
+                            <button
+                              className="btn btn-xs lg:btn-md btn-outline"
+                              onClick={() => {
+                                setSelectedTokenDetails({
+                                  mintPublicKey,
+                                  tokenAccountPublicKey,
+                                });
+                                setShowTokenMintModal(true);
+                              }}
+                            >
+                              Mint Tokens
+                            </button>
                           </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex space-x-2">
+                        </td>
+                        <td className="text-right">
                           <span className="font-mono">
-                            <ExplorerLink
-                              label={ellipsify(account.data.parsed.info.mint)}
-                              path={`account/${account.data.parsed.info.mint.toString()}`}
-                            />
+                            <AccountTokenBalance address={pubkey} />
                           </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="font-mono">
-                          <button
-                            className="btn btn-xs lg:btn-md btn-outline"
-                            onClick={() => setShowTokenMintModal(true)}
-                          >
-                            Mint Tokens
-                          </button>
-                        </span>
-                      </td>
-                      <td className="text-right">
-                        <span className="font-mono">
-                          <AccountTokenBalance address={pubkey} />
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    )
+                  )}
 
                   {(query.data?.length ?? 0) > 5 && (
                     <tr>
