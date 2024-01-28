@@ -1,20 +1,24 @@
 'use client';
 
-import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey, Transaction, TransactionSignature } from '@solana/web3.js';
+import { createMintToCheckedInstruction } from '@solana/spl-token';
 import { IconRefresh } from '@tabler/icons-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { AppModal, ellipsify } from '../ui/ui-layout';
 import { ExplorerLink } from '../cluster/cluster-ui';
 import { useGetTokenAccounts } from '../account/account-data-access';
 import { AccountTokenBalance } from '../account/account-ui';
+import { useTransactionToast } from '../ui/ui-layout';
+import toast from 'react-hot-toast';
 
 export function MintAuthorityTokens({ address }: { address: PublicKey }) {
   const [showAll, setShowAll] = useState(false);
-  const [showSendModal, setShowSendModal] = useState(false);
+  const [showTokenMintModal, setShowTokenMintModal] = useState(false);
   const query = useGetTokenAccounts({ address });
   const client = useQueryClient();
+
   const items = useMemo(() => {
     if (showAll) return query.data;
     return query.data?.slice(0, 5);
@@ -23,9 +27,15 @@ export function MintAuthorityTokens({ address }: { address: PublicKey }) {
   return (
     <>
       <ModalTokenMint
+        hide={() => setShowTokenMintModal(false)}
+        show={showTokenMintModal}
         address={address}
-        show={showSendModal}
-        hide={() => setShowSendModal(false)}
+        mintPublicKey={
+          new PublicKey('Hi3hMa6hpZ1bxX69ubDVYYQvNPnRh2ek5F6cW3a7PhE4')
+        }
+        tokenAccountPublicKey={
+          new PublicKey('8vJv26uFB6GCXF7NnttWmtFTCwLT1B6HMdo3mGdJMhaY')
+        }
       />
 
       <div className="space-y-2">
@@ -99,7 +109,7 @@ export function MintAuthorityTokens({ address }: { address: PublicKey }) {
                         <span className="font-mono">
                           <button
                             className="btn btn-xs lg:btn-md btn-outline"
-                            onClick={() => setShowSendModal(true)}
+                            onClick={() => setShowTokenMintModal(true)}
                           >
                             Mint Tokens
                           </button>
@@ -139,12 +149,21 @@ function ModalTokenMint({
   hide,
   show,
   address,
+  mintPublicKey,
+  tokenAccountPublicKey,
 }: {
   hide: () => void;
   show: boolean;
   address: PublicKey;
+  mintPublicKey: PublicKey;
+  tokenAccountPublicKey: PublicKey;
 }) {
   const wallet = useWallet();
+  const mutation = useMintToken({
+    address,
+    mintPublicKey,
+    tokenAccountPublicKey,
+  });
   const [amount, setAmount] = useState('1');
 
   if (!address || !wallet.sendTransaction) {
@@ -155,11 +174,11 @@ function ModalTokenMint({
     <AppModal
       hide={hide}
       show={show}
-      title="Create Token"
+      title="Mint Tokens"
       submitDisabled={false}
-      submitLabel="Create Token"
+      submitLabel="Mint Tokens"
       submit={() => {
-        console.log('Submiting');
+        mutation.mutateAsync();
       }}
     >
       <input
@@ -174,4 +193,69 @@ function ModalTokenMint({
       />
     </AppModal>
   );
+}
+
+export function useMintToken({
+  address,
+  mintPublicKey,
+  tokenAccountPublicKey,
+}: {
+  address: PublicKey;
+  mintPublicKey: PublicKey;
+  tokenAccountPublicKey: PublicKey;
+}) {
+  const { connection } = useConnection();
+  const transactionToast = useTransactionToast();
+  const wallet = useWallet();
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationKey: ['mint-token', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async () => {
+      let signature: TransactionSignature = '';
+      try {
+        const transaction = new Transaction().add(
+          createMintToCheckedInstruction(
+            mintPublicKey, // mint
+            tokenAccountPublicKey, // receiver (should be a token account)
+            address, // mint authority
+            1, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+            0 // decimals
+          )
+        );
+
+        // Send transaction and await for signature
+        signature = await wallet.sendTransaction(transaction, connection);
+
+        console.log(signature);
+        return signature;
+      } catch (error: unknown) {
+        console.log('error', `Transaction failed! ${error}`, signature);
+
+        return;
+      }
+    },
+    onSuccess: (signature) => {
+      if (signature) {
+        transactionToast(signature);
+      }
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: [
+            'get-balance',
+            { endpoint: connection.rpcEndpoint, address },
+          ],
+        }),
+        client.invalidateQueries({
+          queryKey: [
+            'get-signatures',
+            { endpoint: connection.rpcEndpoint, address },
+          ],
+        }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(`Transaction failed! ${error}`);
+    },
+  });
 }
