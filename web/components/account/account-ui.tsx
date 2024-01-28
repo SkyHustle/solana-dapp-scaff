@@ -121,6 +121,7 @@ export function AccountTokens({ address }: { address: PublicKey }) {
   const [showAll, setShowAll] = useState(false);
   const query = useGetTokenAccounts({ address });
   const client = useQueryClient();
+
   const items = useMemo(() => {
     if (showAll) return query.data;
     return query.data?.slice(0, 5);

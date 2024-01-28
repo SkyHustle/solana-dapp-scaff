@@ -265,17 +265,15 @@ export function useMintToken({
       if (signature) {
         transactionToast(signature);
       }
+
       return Promise.all([
         client.invalidateQueries({
           queryKey: [
-            'get-balance',
-            { endpoint: connection.rpcEndpoint, address },
-          ],
-        }),
-        client.invalidateQueries({
-          queryKey: [
-            'get-signatures',
-            { endpoint: connection.rpcEndpoint, address },
+            'get-token-account-balance',
+            {
+              endpoint: connection.rpcEndpoint,
+              account: tokenAccountPublicKey.toString(),
+            },
           ],
         }),
       ]);
