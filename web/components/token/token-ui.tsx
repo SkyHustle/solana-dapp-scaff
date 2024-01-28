@@ -203,14 +203,15 @@ function ModalTokenMint({
       submitDisabled={false}
       submitLabel="Mint Tokens"
       submit={() => {
-        mutation.mutateAsync();
+        mutation.mutateAsync({ amount: parseFloat(amount) }).then(() => hide());
       }}
     >
       <input
         disabled={false}
         type="number"
-        step="any"
+        step="1"
         min="1"
+        max="100"
         placeholder="Amount"
         className="input input-bordered w-full"
         value={amount}
@@ -236,7 +237,7 @@ export function useMintToken({
 
   return useMutation({
     mutationKey: ['mint-token', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async () => {
+    mutationFn: async (input: { amount: number }) => {
       let signature: TransactionSignature = '';
       try {
         const transaction = new Transaction().add(
@@ -244,7 +245,7 @@ export function useMintToken({
             mintPublicKey, // mint
             tokenAccountPublicKey, // receiver (should be a token account)
             address, // mint authority
-            1, // amount. if your decimals is 8, you mint 10^8 for 1 token.
+            input.amount, // amount of tokens to mint
             0 // decimals
           )
         );
