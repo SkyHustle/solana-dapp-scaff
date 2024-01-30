@@ -1,17 +1,15 @@
 'use client';
 
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { PublicKey, Transaction, TransactionSignature } from '@solana/web3.js';
-import { createMintToCheckedInstruction } from '@solana/spl-token';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 import { IconRefresh } from '@tabler/icons-react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { AppModal, ellipsify } from '../ui/ui-layout';
 import { ExplorerLink } from '../cluster/cluster-ui';
 import { useGetTokenAccounts } from '../account/account-data-access';
 import { AccountTokenBalance } from '../account/account-ui';
-import { useTransactionToast } from '../ui/ui-layout';
-import toast from 'react-hot-toast';
+import { useMintToken } from './token-data-access';
 
 export function MintAuthorityTokens({ address }: { address: PublicKey }) {
   const [showAll, setShowAll] = useState(false);
@@ -219,67 +217,4 @@ function ModalTokenMint({
       />
     </AppModal>
   );
-}
-
-export function useMintToken({
-  address,
-  mintPublicKey,
-  tokenAccountPublicKey,
-}: {
-  address: PublicKey;
-  mintPublicKey: PublicKey;
-  tokenAccountPublicKey: PublicKey;
-}) {
-  const { connection } = useConnection();
-  const transactionToast = useTransactionToast();
-  const wallet = useWallet();
-  const client = useQueryClient();
-
-  return useMutation({
-    mutationKey: ['mint-token', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async (input: { amount: number }) => {
-      let signature: TransactionSignature = '';
-      try {
-        const transaction = new Transaction().add(
-          createMintToCheckedInstruction(
-            mintPublicKey, // mint
-            tokenAccountPublicKey, // receiver (should be a token account)
-            address, // mint authority
-            input.amount, // amount of tokens to mint
-            0 // decimals
-          )
-        );
-
-        // Send transaction and await for signature
-        signature = await wallet.sendTransaction(transaction, connection);
-
-        console.log(signature);
-        return signature;
-      } catch (error: unknown) {
-        console.log('error', `Transaction failed! ${error}`, signature);
-
-        return;
-      }
-    },
-    onSuccess: (signature) => {
-      if (signature) {
-        transactionToast(signature);
-      }
-
-      return Promise.all([
-        client.invalidateQueries({
-          queryKey: [
-            'get-token-account-balance',
-            {
-              endpoint: connection.rpcEndpoint,
-              account: tokenAccountPublicKey.toString(),
-            },
-          ],
-        }),
-      ]);
-    },
-    onError: (error) => {
-      toast.error(`Transaction failed! ${error}`);
-    },
-  });
 }

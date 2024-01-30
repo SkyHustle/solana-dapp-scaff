@@ -17,6 +17,7 @@ import {
   createInitializeMintInstruction,
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
+  createMintToCheckedInstruction,
 } from '@solana/spl-token';
 import toast from 'react-hot-toast';
 
@@ -104,6 +105,69 @@ export function useCreateMint({ address }: { address: PublicKey | null }) {
           queryKey: [
             'get-signatures',
             { endpoint: connection.rpcEndpoint, address },
+          ],
+        }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(`Transaction failed! ${error}`);
+    },
+  });
+}
+
+export function useMintToken({
+  address,
+  mintPublicKey,
+  tokenAccountPublicKey,
+}: {
+  address: PublicKey;
+  mintPublicKey: PublicKey;
+  tokenAccountPublicKey: PublicKey;
+}) {
+  const { connection } = useConnection();
+  const transactionToast = useTransactionToast();
+  const wallet = useWallet();
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationKey: ['mint-token', { endpoint: connection.rpcEndpoint, address }],
+    mutationFn: async (input: { amount: number }) => {
+      let signature: TransactionSignature = '';
+      try {
+        const transaction = new Transaction().add(
+          createMintToCheckedInstruction(
+            mintPublicKey, // mint
+            tokenAccountPublicKey, // receiver (should be a token account)
+            address, // mint authority
+            input.amount, // amount of tokens to mint
+            0 // decimals
+          )
+        );
+
+        // Send transaction and await for signature
+        signature = await wallet.sendTransaction(transaction, connection);
+
+        console.log(signature);
+        return signature;
+      } catch (error: unknown) {
+        console.log('error', `Transaction failed! ${error}`, signature);
+
+        return;
+      }
+    },
+    onSuccess: (signature) => {
+      if (signature) {
+        transactionToast(signature);
+      }
+
+      return Promise.all([
+        client.invalidateQueries({
+          queryKey: [
+            'get-token-account-balance',
+            {
+              endpoint: connection.rpcEndpoint,
+              account: tokenAccountPublicKey.toString(),
+            },
           ],
         }),
       ]);
