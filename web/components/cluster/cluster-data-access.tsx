@@ -20,6 +20,7 @@ export enum ClusterNetwork {
   Devnet = 'devnet',
   Custom = 'custom',
 }
+
 export function toWalletAdapterNetwork(
   cluster?: ClusterNetwork
 ): WalletAdapterNetwork | undefined {
