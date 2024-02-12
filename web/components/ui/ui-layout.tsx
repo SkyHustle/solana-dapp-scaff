@@ -57,6 +57,7 @@ export function UiLayout({ children }: { children: ReactNode }) {
           <ClusterUiSelect />
         </div>
       </div>
+
       <ClusterChecker>
         <AccountChecker />
       </ClusterChecker>
